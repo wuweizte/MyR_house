@@ -1,5 +1,5 @@
 #### Author Comment Part
-# modified on 2016-7-8
+# modified on 2016-8-18
 
 #### File Descriptiong Part
 # 代码目的：用于比较月度房价信息
@@ -58,17 +58,23 @@ InputSpecifiedTypeData <- function(arg.ls.value.data, arg.type, arg.year = 2016,
                                        ".csv", sep = "")
                 csv.file.content <- read.csv(csv.file.name, stringsAsFactors = FALSE)
                 
+                csv.file.content <- csv.file.content[, 1:2]
+                names(csv.file.content) <- c("city", "price")
+                csv.file.content[["time"]] <- paste(arg.year, "-", i,sep = "") 
+                        
                 if (i == 1) {
-                        ls.value.data[[arg.type]] <- csv.file.content        
+                        ls.value.data[[arg.type]] <- csv.file.content   
                 } else {
-                        ls.value.data[[arg.type]] <- 
-                                merge(ls.value.data[[arg.type]], 
-                                      csv.file.content, by = "城市")
+                        ls.value.data[[arg.type]] <-
+                                rbind(ls.value.data[[arg.type]], csv.file.content)
                 }
-                names(ls.value.data[[arg.type]])[length(ls.value.data[[arg.type]])] <- 
-                        paste(arg.year, "-", i,sep = "")
         }
         
+        data.source <- ls.value.data[[arg.type]]
+        data.source <- data.source[order(data.source$city, data.source$time),]
+        data.source$city <- gsub("　　", "",  data.source$city) 
+        
+        ls.value.data[[arg.type]] <- data.source
         
         return(ls.value.data)
 }
@@ -85,16 +91,8 @@ DrawSpecifiedCitiesPlot <- function(arg.ls.value.data, arg.type, arg.cities){
         #   返回返回ggplot图层对象
         
         data.source <- arg.ls.value.data[[arg.type]]
-        data.source <- melt(data.source, id = names(data.source)[1],
-                            measure.vars = names(data.source)[-1])
-        
-        names(data.source) <- c("city", "time", "price")
-        data.source <- data.source[order(data.source[1],data.source[2]),]
-        data.source[[1]] <- gsub("　　", "",  data.source[[1]]) 
-        #browser()
-         
-        data.source <- data.source[(data.source[[1]] %in% arg.cities),]
-        #browser() 
+
+        data.source <- data.source[(data.source$city %in% arg.cities),]
         if (arg.type == "xinjianshangpinfang") {
                 plot.title.text <- "'90' * m ^ 2 * '以下新建商品房价格指数'"
         } else {
@@ -111,12 +109,10 @@ DrawSpecifiedCitiesPlot <- function(arg.ls.value.data, arg.type, arg.cities){
                 xlab("注：2015年全年平均价格水平对应指数为100") +
                 ylab("价格指数") +
                 ggtitle("   ")  +
-                #theme(plot.title = element_text(size = 20))  +
-
                 annotate("text", x = mean(1:length(arg.cities)), y = Inf, 
                          label = plot.title.text, 
                          vjust = 1.5, size = 7, parse = TRUE) +
-                coord_cartesian(ylim = c(75, 160))
+                coord_cartesian(ylim = c(75, 165))
 
         return(p)
         
@@ -150,80 +146,72 @@ DrawGlobalPriceCurve <- function(arg.ls.value.data, arg.type){
         #   输入数据的中值在对应密度图上的Y坐标
         
         data.source <- arg.ls.value.data[[arg.type]]
+        median.data <- tapply(data.source$price, data.source$time, median)
         
-        min.median.month <- names(which.min(apply(data.source[-1], 2, median)))
-        min.median.month.price <- data.source[min.median.month][[1]]
-        
-        max.median.month <- names(which.max(apply(data.source[-1], 2, median)))
-        max.median.month.price <- data.source[max.median.month][[1]]
-        
-        #browser()
-        data.source <- melt(data.source, id = names(data.source)[1],
-                            measure.vars = names(data.source)[-1])
-        
-        names(data.source) <- c("city", "time", "price")
-        data.source <- data.source[order(data.source[1],data.source[2]),]
-        
-        data.source[[2]] <- factor(data.source[[2]])
-        min.price <- floor(min(data.source[[3]]))
-        max.price <- ceiling(max(data.source[[3]]))
+        min.median.month <- names(which.min(median.data))
+        min.median.month.price <- median.data[min.median.month]
+
+        max.median.month <- names(which.max(median.data))
+        max.median.month.price <- median.data[max.median.month]
+
+        min.price <- floor(min(data.source$price))
+        max.price <- ceiling(max(data.source$price))
         
         if (arg.type == "xinjianshangpinfang") {
-                plot.title.text <- "'90' * m ^ 2 * '以下新建商品房价格指数分布密度曲线'"
+                plot.title.text <- "'90' * m ^ 2 * '以下新建商品房价格指数的分布密度曲线（70个城市）'"
         } else {
-                plot.title.text <- "'90' * m ^ 2 * '以下二手住宅价格指数分布密度曲线'"
+                plot.title.text <- "'90' * m ^ 2 * '以下二手住宅价格指数的分布密度曲线（70个城市）'"
         }
 
+        y.coordinate.min.median <- 
+                FindDensityCurveMedianYCoordinate(data.source$price[as.character(data.source$time) == min.median.month])
+        y.coordinate.max.median <- 
+                FindDensityCurveMedianYCoordinate(data.source$price[as.character(data.source$time) == max.median.month])
         
-                
-        #browser()
-        p <- ggplot(data.source[2:3], aes(x = price, colour = time, fill = time)) +
+        p <- ggplot(data.source[c("price", "time")], aes(x = price, colour = time, fill = time)) +
                 geom_density(alpha = .5) +
                 scale_colour_brewer(palette = "Dark2") +
                 scale_fill_brewer(palette = "Dark2") +
-                annotate("segment", 
-                         x = median(min.median.month.price), 
-                         xend = median(min.median.month.price),
-                         y = 0, 
-                         yend = FindDensityCurveMedianYCoordinate(min.median.month.price), 
+                annotate("segment",
+                         x = min.median.month.price,
+                         xend = min.median.month.price,
+                         y = 0,
+                         yend = y.coordinate.min.median,
                          linetype = "dashed",
                          color = "red") +
-                annotate("text", 
-                         x = median(min.median.month.price),
-                         y = FindDensityCurveMedianYCoordinate(min.median.month.price),
-                         label = paste(min.median.month,
-                                 " 当月价格指数中值：",
-                                       format(median(min.median.month.price), digits = 4), 
+                annotate("text",
+                         x = min.median.month.price,
+                         y = y.coordinate.min.median,
+                         label = paste(" 月度价格指数中值的最小值出现在 ",
+                                 min.median.month, " ，为 ",
+                                       format(min.median.month.price, digits = 4),
                                        sep = ""),
                          hjust = -.1, vjust = .1,size = 3.3, color = "red" ) +
 
-                annotate("segment", 
-                         x = median(max.median.month.price), 
-                         xend = median(max.median.month.price),
-                         y = 0, 
-                         yend = FindDensityCurveMedianYCoordinate(max.median.month.price), 
+                annotate("segment",
+                         x = max.median.month.price,
+                         xend = max.median.month.price,
+                         y = 0,
+                         yend = y.coordinate.max.median,
                          linetype = "dashed",
                          color = "red") +
-                annotate("text", 
-                         x = median(max.median.month.price),
-                         y = FindDensityCurveMedianYCoordinate(max.median.month.price),
-                         label = paste(max.median.month,
-                                       " 当月价格指数中值：",
-                                       format(median(max.median.month.price), digits = 4), 
+                annotate("text",
+                         x = max.median.month.price,
+                         y = y.coordinate.max.median,
+                         label = paste(" 月度价格指数中值的最大值出现在 ",
+                                       max.median.month, " ， 为 ",
+                                       format(max.median.month.price, digits = 4),
                                        sep = ""),
                          hjust = -.1, vjust = .1,size = 3.3, color = "red" ) +
-                
+
                 ggtitle("   ")  +
-                #theme(plot.title = element_text(size = 20))  +
-                
-                annotate("text", x = mean(c(min.price, max.price)), y = Inf, 
-                         label = plot.title.text, 
-                         vjust = 1.5, size = 7, parse = TRUE) +
-                
+                annotate("text", x = mean(c(min.price, max.price)), y = Inf,
+                         label = plot.title.text,
+                         vjust = 1.5, size = 6, parse = TRUE) +
+
                 xlab("注：2015年全年平均价格水平对应指数为100") +
                 ylab("分布密度") +
-                coord_cartesian(xlim = c(min.price, max.price), ylim = c(0, 0.35))
-                
+                coord_cartesian(xlim = c(min.price, max.price), ylim = c(0, 0.3))
                 
         return(p)
 }
@@ -238,9 +226,9 @@ setwd("d:/MyR/house")
 ##Usually only numeric_Specied_Month need to be changed
 
 specied.year <- 2016
-specied.month <- 1:5  ## change here every time!
-specied.cities <- c("深圳", "广州", "北京", "上海", "成都", "西安",  
-                    "武汉", "杭州")
+specied.month <- 3:8  ## change here every time!
+specied.cities <- c("深圳", "广州", "北京", "上海", "合肥", "武汉",  
+                    "长沙")
 
 ##read csv files to get data. The input months length can be larger than 3
 ls.value <- InputData(specied.year, specied.month)
@@ -252,17 +240,17 @@ curve.ershou <- DrawGlobalPriceCurve(ls.value, "ershouzhuzhai")
 
 ### The first plot
 
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(2, 1)))
-vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-
-print(plot.xinjian, vp = vplayout(1, 1))
-print(plot.ershou, vp = vplayout(2, 1))
-
-### The second plot
-
 # grid.newpage()
 # pushViewport(viewport(layout = grid.layout(2, 1)))
 # vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-# print(curve.xinjian, vp = vplayout(1, 1))
-# print(curve.ershou, vp = vplayout(2, 1))
+# 
+# print(plot.xinjian, vp = vplayout(1, 1))
+# print(plot.ershou, vp = vplayout(2, 1))
+
+### The second plot
+# 
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(2, 1)))
+vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
+print(curve.xinjian, vp = vplayout(1, 1))
+print(curve.ershou, vp = vplayout(2, 1))
