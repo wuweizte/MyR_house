@@ -1,5 +1,5 @@
 #### Author Comment Part
-# modified on 2016-8-18
+# modified on 2016-12-20
 
 #### File Descriptiong Part
 # 代码目的：用于比较月度房价信息
@@ -10,15 +10,15 @@ library(grid)
 library(ggplot2)
 library(RColorBrewer)
 library(reshape2)
-
+library(lubridate)
 
 #### Function Definition Part
-InputData <- function(arg.year = 2016, arg.month = 2) {
+InputData <- function(arg.start.month, arg.end.month) {
         # 调用读取数据文件的子函数读取记录存放到全局列表中
         #
         # Args:
-        #   arg.year: 绘画针对的年份，以单向量形式输入
-        #   arg.month: 绘画针对的月份范围，以向量形式输入
+        #   arg.start.month: 绘画针对的起始月份，以单向量形式输入
+        #   arg.end.month: 绘画针对的结束月份，以单向量形式输入
         #
         # Returns:
         #   返回已经填好数据的列表
@@ -27,40 +27,59 @@ InputData <- function(arg.year = 2016, arg.month = 2) {
 
         ls.value.data <- InputSpecifiedTypeData(ls.value.data, 
                                                 "xinjianshangpinfang", 
-                                                arg.year,
-                                                arg.month)
+                                                arg.start.month, 
+                                                arg.end.month)
 
         ls.value.data <- InputSpecifiedTypeData(ls.value.data, 
                                                 "ershouzhuzhai", 
-                                                arg.year,
-                                                arg.month)
+                                                arg.start.month, 
+                                                arg.end.month)
         
         return(ls.value.data)
 }
 
-InputSpecifiedTypeData <- function(arg.ls.value.data, arg.type, arg.year = 2016, 
-                                   arg.month = 2) {
+InputSpecifiedTypeData <- function(arg.ls.value.data, 
+                                   arg.type, 
+                                   arg.start.month, 
+                                   arg.end.month) {
         # 读取指定类型的数据文件，存放数据到全局列表中
         #
         # Args:
         #   arg.ls.value.data  全局列表的值引用
         #   arg.type: 读取的文件类型
-        #   arg.year: 绘画针对的年份，以单向量形式输入
-        #   arg.month: 绘画针对的月份范围，以向量形式输入
+        #   arg.start.month: 绘画针对的起始月份，以单向量形式输入
+        #   arg.end.month: 绘画针对的结束月份，以单向量形式输入
         #
         # Returns:
         #   返回已经填好数据的列表
         
         ls.value.data <- arg.ls.value.data
         
-        for(i in arg.month){
-                csv.file.name <- paste(arg.type, arg.year, "-", i,  
+        # browser()
+        month.list <- seq(arg.start.month, arg.end.month, "month")
+        
+        for(i in 1:length(month.list)){
+                var.year <- year(month.list[i])
+                var.month <- month(month.list[i])
+                
+                csv.file.name <- paste(arg.type, var.year, "-", var.month,  
                                        ".csv", sep = "")
                 csv.file.content <- read.csv(csv.file.name, stringsAsFactors = FALSE)
                 
                 csv.file.content <- csv.file.content[, 1:2]
                 names(csv.file.content) <- c("city", "price")
-                csv.file.content[["time"]] <- paste(arg.year, "-", i,sep = "") 
+                if(var.month > 9) {
+                        csv.file.content[["time"]] <- paste(var.year, 
+                                                            "-", 
+                                                            var.month,
+                                                            sep = "")         
+                }else{
+                        csv.file.content[["time"]] <- paste(var.year, 
+                                                            "-0", 
+                                                            var.month,
+                                                            sep = "")
+                }
+                
                         
                 if (i == 1) {
                         ls.value.data[[arg.type]] <- csv.file.content   
@@ -99,6 +118,7 @@ DrawSpecifiedCitiesPlot <- function(arg.ls.value.data, arg.type, arg.cities){
                 plot.title.text <- "'90' * m ^ 2 * '以下二手住宅价格指数'"
         }
         
+        # browser()
         p <- ggplot(data.source, aes(x = city, y = price, color = time, fill = time)) +
                 geom_bar(position = "dodge", stat = "identity", alpha = .5) +
 
@@ -112,7 +132,7 @@ DrawSpecifiedCitiesPlot <- function(arg.ls.value.data, arg.type, arg.cities){
                 annotate("text", x = mean(1:length(arg.cities)), y = Inf, 
                          label = plot.title.text, 
                          vjust = 1.5, size = 7, parse = TRUE) +
-                coord_cartesian(ylim = c(75, 165))
+                coord_cartesian(ylim = c(75, 175))
 
         return(p)
         
@@ -211,7 +231,7 @@ DrawGlobalPriceCurve <- function(arg.ls.value.data, arg.type){
 
                 xlab("注：2015年全年平均价格水平对应指数为100") +
                 ylab("分布密度") +
-                coord_cartesian(xlim = c(min.price, max.price), ylim = c(0, 0.3))
+                coord_cartesian(xlim = c(min.price, max.price), ylim = c(0, 0.15))
                 
         return(p)
 }
@@ -225,13 +245,20 @@ setwd("d:/MyR/house")
 ##Specify the year and month range to draw plots
 ##Usually only numeric_Specied_Month need to be changed
 
-specied.year <- 2016
-specied.month <- 3:8  ## change here every time!
-specied.cities <- c("深圳", "广州", "北京", "上海", "合肥", "武汉",  
-                    "长沙")
+# specied.year <- 2016
+# specied.month <- 7:12  ## change here every time!
+
+start.month <- as.Date("2016-8-1")
+end.month <- as.Date("2017-1-1")
+        
+specied.cities <- c("深圳", "广州", "北京", "上海", "三亚", "合肥",  
+                    "成都")
 
 ##read csv files to get data. The input months length can be larger than 3
-ls.value <- InputData(specied.year, specied.month)
+# ls.value <- InputData(specied.year, specied.month)
+
+ls.value <- InputData(start.month, end.month)
+
 plot.xinjian <- DrawSpecifiedCitiesPlot(ls.value, "xinjianshangpinfang", specied.cities)
 plot.ershou <- DrawSpecifiedCitiesPlot(ls.value, "ershouzhuzhai", specied.cities)
 
@@ -240,17 +267,17 @@ curve.ershou <- DrawGlobalPriceCurve(ls.value, "ershouzhuzhai")
 
 ### The first plot
 
-# grid.newpage()
-# pushViewport(viewport(layout = grid.layout(2, 1)))
-# vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-# 
-# print(plot.xinjian, vp = vplayout(1, 1))
-# print(plot.ershou, vp = vplayout(2, 1))
-
-### The second plot
-# 
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(2, 1)))
 vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-print(curve.xinjian, vp = vplayout(1, 1))
-print(curve.ershou, vp = vplayout(2, 1))
+
+print(plot.xinjian, vp = vplayout(1, 1))
+print(plot.ershou, vp = vplayout(2, 1))
+
+### The second plot
+# 
+# grid.newpage()
+# pushViewport(viewport(layout = grid.layout(2, 1)))
+# vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
+# print(curve.xinjian, vp = vplayout(1, 1))
+# print(curve.ershou, vp = vplayout(2, 1))

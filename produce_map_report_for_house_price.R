@@ -9,18 +9,18 @@ china.data <- world.data[world.data$region == "China",]
 setwd("d:/MyR/house")
 city.data <- read.csv("city_lat_long.csv")
 
-price.data <- read.csv("ershouzhuzhai2016-8.csv")
+price.data <- read.csv("ershouzhuzhai2017-1.csv")
 price.data[[1]] <- gsub("　　", "",  price.data[[1]])
 price.data[[1]] <- gsub(" ", "",  price.data[[1]])
 names(price.data) <- c("chinese.name", "price", "price.tongbi")
 
 final.data <- merge(city.data, price.data, by.x = "chinese.name", by.y = "chinese.name")
-final.data$`当前价格指数` <- cut2(final.data$price, cuts = c(100, 105,115, 125))
+final.data$`当前价格指数` <- cut2(final.data$price, cuts = c(100, 110,125, 140))
 
 final.data$`同比上年同月价格` <- cut2(final.data$price.tongbi, cuts = c(99,101))
 final.data$`同比上年同月价格` <- factor(final.data$`同比上年同月价格`, labels = c("下跌","持平","上涨"))
 
-plot.title.text <- "'90' * m ^ 2 * '以下二手住宅价格指数的地理化分布图（2016-8）'"
+plot.title.text <- "'90' * m ^ 2 * '以下二手住宅价格指数的地理化分布图（2017-1）'"
 
 p <- ggplot(china.data, aes(long, lat)) +
         geom_polygon(aes(group = group), fill = "white", color = "black") +
