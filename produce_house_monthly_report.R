@@ -13,7 +13,7 @@ library(reshape2)
 library(lubridate)
 
 #### Function Definition Part
-InputData <- function(arg.start.month, arg.end.month) {
+InputData <- function(arg.start.month, arg.end.month, arg.month.interval) {
         # 调用读取数据文件的子函数读取记录存放到全局列表中
         #
         # Args:
@@ -28,12 +28,14 @@ InputData <- function(arg.start.month, arg.end.month) {
         ls.value.data <- InputSpecifiedTypeData(ls.value.data, 
                                                 "xinjianshangpinfang", 
                                                 arg.start.month, 
-                                                arg.end.month)
+                                                arg.end.month, 
+                                                arg.month.interval)
 
         ls.value.data <- InputSpecifiedTypeData(ls.value.data, 
                                                 "ershouzhuzhai", 
                                                 arg.start.month, 
-                                                arg.end.month)
+                                                arg.end.month, 
+                                                arg.month.interval)
         
         return(ls.value.data)
 }
@@ -41,7 +43,8 @@ InputData <- function(arg.start.month, arg.end.month) {
 InputSpecifiedTypeData <- function(arg.ls.value.data, 
                                    arg.type, 
                                    arg.start.month, 
-                                   arg.end.month) {
+                                   arg.end.month, 
+                                   arg.month.interval) {
         # 读取指定类型的数据文件，存放数据到全局列表中
         #
         # Args:
@@ -56,7 +59,12 @@ InputSpecifiedTypeData <- function(arg.ls.value.data,
         ls.value.data <- arg.ls.value.data
         
         # browser()
-        month.list <- seq(arg.start.month, arg.end.month, "month")
+        if(arg.month.interval > 1){
+                month.interval <- paste0(arg.month.interval," months")
+        }else{
+                month.interval <- "month"
+        }
+        month.list <- seq(arg.start.month, arg.end.month, month.interval)
         
         for(i in 1:length(month.list)){
                 var.year <- year(month.list[i])
@@ -231,7 +239,7 @@ DrawGlobalPriceCurve <- function(arg.ls.value.data, arg.type){
 
                 xlab("注：2015年全年平均价格水平对应指数为100") +
                 ylab("分布密度") +
-                coord_cartesian(xlim = c(min.price, max.price), ylim = c(0, 0.15))
+                coord_cartesian(xlim = c(min.price, max.price), ylim = c(0, 0.17))
                 
         return(p)
 }
@@ -248,16 +256,17 @@ setwd("d:/MyR/house")
 # specied.year <- 2016
 # specied.month <- 7:12  ## change here every time!
 
-start.month <- as.Date("2016-8-1")
-end.month <- as.Date("2017-1-1")
+start.month <- as.Date("2016-6-1")
+end.month <- as.Date("2017-4-1")
         
-specied.cities <- c("深圳", "广州", "北京", "上海", "三亚", "合肥",  
-                    "成都")
+specied.cities <- c("深圳", "广州", "北京", "上海", "南京", "合肥",  
+                    "武汉")
 
 ##read csv files to get data. The input months length can be larger than 3
 # ls.value <- InputData(specied.year, specied.month)
 
-ls.value <- InputData(start.month, end.month)
+month.interval <- 2  ## used to defind every month or every 2 months
+ls.value <- InputData(start.month, end.month, month.interval)
 
 plot.xinjian <- DrawSpecifiedCitiesPlot(ls.value, "xinjianshangpinfang", specied.cities)
 plot.ershou <- DrawSpecifiedCitiesPlot(ls.value, "ershouzhuzhai", specied.cities)
@@ -267,17 +276,17 @@ curve.ershou <- DrawGlobalPriceCurve(ls.value, "ershouzhuzhai")
 
 ### The first plot
 
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(2, 1)))
-vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-
-print(plot.xinjian, vp = vplayout(1, 1))
-print(plot.ershou, vp = vplayout(2, 1))
-
-### The second plot
-# 
 # grid.newpage()
 # pushViewport(viewport(layout = grid.layout(2, 1)))
 # vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-# print(curve.xinjian, vp = vplayout(1, 1))
-# print(curve.ershou, vp = vplayout(2, 1))
+# 
+# print(plot.xinjian, vp = vplayout(1, 1))
+# print(plot.ershou, vp = vplayout(2, 1))
+
+### The second plot
+# 
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(2, 1)))
+vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
+print(curve.xinjian, vp = vplayout(1, 1))
+print(curve.ershou, vp = vplayout(2, 1))
