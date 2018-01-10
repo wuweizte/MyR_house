@@ -9,7 +9,7 @@ china.data <- world.data[world.data$region == "China",]
 setwd("d:/MyR/house")
 city.data <- read.csv("city_lat_long.csv")
 
-price.data <- read.csv("ershouzhuzhai2017-4.csv")
+price.data <- read.csv("ershouzhuzhai2017-11.csv")
 price.data[[1]] <- gsub("　　", "",  price.data[[1]])
 price.data[[1]] <- gsub(" ", "",  price.data[[1]])
 names(price.data) <- c("chinese.name", "price", "price.tongbi")
@@ -17,10 +17,21 @@ names(price.data) <- c("chinese.name", "price", "price.tongbi")
 final.data <- merge(city.data, price.data, by.x = "chinese.name", by.y = "chinese.name")
 final.data$`当前价格指数` <- cut2(final.data$price, cuts = c(100, 110,125, 140))
 
-final.data$`同比上年同月价格` <- cut2(final.data$price.tongbi, cuts = c(99,101))
-final.data$`同比上年同月价格` <- factor(final.data$`同比上年同月价格`, labels = c("下跌","持平","上涨"))
+final.data$`同比上年同月价格` <- cut2(final.data$price.tongbi, cuts = c(98,102))
 
-plot.title.text <- "'90' * m ^ 2 * '以下二手住宅价格指数的地理化分布图（2017-4）'"
+## It is found that no city price declines comparing to the same month last year since June,2016
+
+if(sum(final.data$price.tongbi < 98) > 0){
+
+        final.data$`同比上年同月价格` <- factor(final.data$`同比上年同月价格`, labels = c("下跌","持平","上涨"))
+        shape.ind <- c(25, 22, 24)
+}else{
+        final.data$`同比上年同月价格` <- factor(final.data$`同比上年同月价格`, labels = c("持平","上涨"))
+        shape.ind <- c(22, 24)
+}
+
+
+plot.title.text <- "'90' * m ^ 2 * '以下二手住宅价格指数的地理化分布图（2017-11）'"
 
 p <- ggplot(china.data, aes(long, lat)) +
         geom_polygon(aes(group = group), fill = "white", color = "black") +
@@ -31,7 +42,8 @@ p <- ggplot(china.data, aes(long, lat)) +
                    data=final.data) +
 
         scale_colour_manual(values = c("royalblue", "skyblue", "pink1", "red", "purple")) +
-        scale_shape_manual(values = c(25, 22, 24)) +
+
+        scale_shape_manual(values = shape.ind) +
         scale_fill_manual(values = c("royalblue", "skyblue", "pink1", "red", "purple")) +
         
         geom_text(aes(x=long,y=lat, label = chinese.name),check_overlap = FALSE,
