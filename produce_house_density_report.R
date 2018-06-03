@@ -132,22 +132,19 @@ DrawSpecifiedCitiesPlot <- function(arg.ls.value.data, arg.type, arg.cities){
         # browser()
         p <- ggplot(data.source, aes(x = city, y = price, color = time, fill = time)) +
                 geom_bar(position = "dodge", stat = "identity", alpha = .5) +
-                
-                theme(axis.text.x=element_text(size=14,face = "bold")) +
-                
-                geom_text(aes(label = round(price, digits = 0),
+
+                geom_text(aes(label = format(price, nsmall = 1),
                               vjust = -0.9 ),
                           position = position_dodge(.9),size = 3,
                           colour = "black") +
                 xlab("注：2015年全年平均价格水平对应指数为100") +
                 ylab("价格指数") +
                 ggtitle("   ")  +
-                annotate("text", x = mean(1:length(arg.cities)), y = Inf,
-                         label = plot.title.text,
+                annotate("text", x = mean(1:length(arg.cities)), y = Inf, 
+                         label = plot.title.text, 
                          vjust = 1.5, size = 7, parse = TRUE) +
-                coord_cartesian(ylim = c(75, 185))
+                coord_cartesian(ylim = c(75, 175))
 
-    
         return(p)
         
 }
@@ -220,7 +217,7 @@ DrawGlobalPriceCurve <- function(arg.ls.value.data, arg.type){
                                  min.median.month, " ，为 ",
                                        format(min.median.month.price, digits = 4),
                                        sep = ""),
-                         hjust = -.1, vjust = .1,size = 3.3, color = "red" ) +
+                         hjust = -.1, vjust = .1,size = 4, color = "red" ) +
 
                 annotate("segment",
                          x = max.median.month.price,
@@ -236,7 +233,7 @@ DrawGlobalPriceCurve <- function(arg.ls.value.data, arg.type){
                                        max.median.month, " ， 为 ",
                                        format(max.median.month.price, digits = 4),
                                        sep = ""),
-                         hjust = -.1, vjust = .1,size = 3.3, color = "red" ) +
+                         hjust = -.1, vjust = .1,size = 4, color = "red" ) +
 
                 ggtitle("   ")  +
                 annotate("text", x = mean(c(min.price, max.price)), y = Inf,
@@ -245,7 +242,7 @@ DrawGlobalPriceCurve <- function(arg.ls.value.data, arg.type){
 
                 xlab("注：2015年全年平均价格水平对应指数为100") +
                 ylab("分布密度") +
-                coord_cartesian(xlim = c(min.price, max.price), ylim = c(0, 0.16))
+                coord_cartesian(xlim = c(min.price, max.price), ylim = c(0, 0.13))
                 
         return(p)
 }
@@ -261,36 +258,35 @@ setwd("d:/MyR/house")
 start.month <- as.Date("2016-8-1")
 end.month <- as.Date("2018-4-1")
         
-specied.cities <- c("深圳", "广州", "北京", "上海", "厦门", "南京",  
-                    "西安")
+# specied.cities <- c("深圳", "广州", "北京", "上海", "厦门", "南京",  
+#                     "西安")
 
 month.interval <- 4  ## used to defind every month or every 2/3 months
 ls.value <- InputHouseData(start.month, end.month, month.interval)
 
-plot.xinjian <- DrawSpecifiedCitiesPlot(ls.value, "xinjianshangpinfang", specied.cities)
-plot.ershou <- DrawSpecifiedCitiesPlot(ls.value, "ershouzhuzhai", specied.cities)
+# plot.xinjian <- DrawSpecifiedCitiesPlot(ls.value, "xinjianshangpinfang", specied.cities)
+# plot.ershou <- DrawSpecifiedCitiesPlot(ls.value, "ershouzhuzhai", specied.cities)
 
-# curve.xinjian <- DrawGlobalPriceCurve(ls.value, "xinjianshangpinfang")
-# curve.ershou <- DrawGlobalPriceCurve(ls.value, "ershouzhuzhai")
+curve.xinjian <- DrawGlobalPriceCurve(ls.value, "xinjianshangpinfang")
+curve.ershou <- DrawGlobalPriceCurve(ls.value, "ershouzhuzhai")
 
 ### The first plot
 
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(2, 1)))
-vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-
-print(plot.xinjian, vp = vplayout(1, 1))
-print(plot.ershou, vp = vplayout(2, 1))
-
-### The second plot
-# 
 # grid.newpage()
 # pushViewport(viewport(layout = grid.layout(2, 1)))
 # vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-# print(curve.xinjian, vp = vplayout(1, 1))
-# print(curve.ershou, vp = vplayout(2, 1))
+# 
+# print(plot.xinjian, vp = vplayout(1, 1))
+# print(plot.ershou, vp = vplayout(2, 1))
 
-dev.copy(png, file = "produce_house_monthly_report.png", units= "px", width=1000, height=600)
+### The second plot
+# 
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(2, 1)))
+vplayout = function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
+print(curve.xinjian, vp = vplayout(1, 1))
+print(curve.ershou, vp = vplayout(2, 1))
+
+dev.copy(png, file = "produce_house_density_report.png", units= "px", width=1000, height=600)
 
 dev.off()
-

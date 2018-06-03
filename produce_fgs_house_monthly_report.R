@@ -5,12 +5,16 @@
 # 代码目的：用于比较指定楼盘月度成交价信息
 
 #### Library Quoting Part
-library(dplyr, warn.conflicts = FALSE)
-library(grid)
-library(ggplot2)
-library(RColorBrewer)
-library(reshape2)
-library(lubridate)
+rm(list = ls())
+
+suppressMessages(library(ggplot2))
+suppressMessages(library(dplyr, warn.conflicts = FALSE))
+suppressMessages(library(grid))
+
+suppressMessages(library(RColorBrewer))
+suppressMessages(library(reshape2))
+suppressMessages(library(lubridate))
+
 
 #### Function Definition Part
 InputData <- function(arg.start.month, 
@@ -116,10 +120,29 @@ DrawSpecifiedCitiesPlot <- function(arg.ls.value.data){
         plot.title.text <- "链家网佛广深二手房成交价"
 
         # browser()
+        
+        price.show <- data.source$price
+        
+        price.show[c(5,8,11,17,23,33)] <- NA
+        
         p <- ggplot(data.source, aes(x = name, y = price, color = date, fill = date)) +
-                geom_bar(position = "dodge", stat = "identity", alpha = .5) +
-
-                geom_text(aes(label = format(price, nsmall = 1),
+                geom_bar(
+                  # position = position_dodge(.9), 
+                  position = "dodge",
+                         width = 0.9,
+                         stat = "identity", 
+                         alpha = .5) +
+                
+                theme(axis.text.x=element_text(size=14,face = "bold")) +
+                
+                scale_x_discrete(labels = c("佛山中海千灯湖花园(2013年建成)" = "佛山中海千灯湖花园\n(2013年建成)",
+                                            "佛山中海万锦豪园(2005年建成)" = "佛山中海万锦豪园\n(2005年建成)",
+                                            "广州华景新城陶然庭园(2007年建成)" = "广州华景新城陶然庭园\n(2007年建成)",
+                                            "广州珠岛花园二期(1995年建成)" = "广州珠岛花园二期\n(1995年建成)",
+                                            "深圳和成世纪名园(2014年建成)" = "深圳和成世纪名园\n(2014年建成)",
+                                            "深圳阳光棕榈园三期(2004年建成)" = "深圳阳光棕榈园三期\n(2004年建成)")) +
+                
+                geom_text(aes(label = price.show,
                               vjust = -0.9 ),
                           position = position_dodge(.9),size = 3,
                           colour = "black") +
@@ -142,7 +165,7 @@ setwd("d:/MyR/house")
 ##Specify the year and month range to draw plots
 
 start.month <- as.Date("2016-8-1")
-end.month <- as.Date("2017-11-1")
+end.month <- as.Date("2018-4-1")
         
 specied.cities <- c("佛山中海千灯湖花园(2013年建成)", 
                     "佛山中海万锦豪园(2005年建成)", 
@@ -153,9 +176,13 @@ specied.cities <- c("佛山中海千灯湖花园(2013年建成)",
 
 ##read csv files to get data. The input months length can be larger than 3
 
-month.interval <- 3  ## used to defind every month or every 2/3 months
+month.interval <- 4  ## used to defind every month or every 2/3 months
 ls.value <- InputData(start.month, end.month, month.interval, specied.cities)
 
-DrawSpecifiedCitiesPlot(ls.value)
-# 
-# 
+p <- DrawSpecifiedCitiesPlot(ls.value)
+print(p)
+ 
+
+dev.copy(png, file = "produce_fgs_house_monthly_report.png", units= "px", width=1000, height=600)
+
+dev.off()

@@ -1,7 +1,9 @@
-library(ggplot2)
-library(mapdata)
-library(maps)
-library(Hmisc)
+rm(list = ls())
+
+suppressMessages(library(ggplot2))
+suppressMessages(library(mapdata))
+suppressMessages(library(maps))
+suppressMessages(library(Hmisc))
 
 world.data <- map_data("world")
 china.data <- world.data[world.data$region == "China",]
@@ -9,7 +11,12 @@ china.data <- world.data[world.data$region == "China",]
 setwd("d:/MyR/house")
 city.data <- read.csv("city_lat_long.csv")
 
-price.data <- read.csv("ershouzhuzhai2017-11.csv")
+year <- 2018
+month <- 4  ###input
+
+file.name <- paste0("ershouzhuzhai",year,"-",month,".csv")
+price.data <- read.csv(file.name)
+
 price.data[[1]] <- gsub("　　", "",  price.data[[1]])
 price.data[[1]] <- gsub(" ", "",  price.data[[1]])
 names(price.data) <- c("chinese.name", "price", "price.tongbi")
@@ -31,7 +38,7 @@ if(sum(final.data$price.tongbi < 98) > 0){
 }
 
 
-plot.title.text <- "'90' * m ^ 2 * '以下二手住宅价格指数的地理化分布图（2017-11）'"
+plot.title.text <- paste0("'90' * m ^ 2 * '以下二手住宅价格指数的地理化分布图（",year,"-",month,"）'")
 
 p <- ggplot(china.data, aes(long, lat)) +
         geom_polygon(aes(group = group), fill = "white", color = "black") +
@@ -46,8 +53,13 @@ p <- ggplot(china.data, aes(long, lat)) +
         scale_shape_manual(values = shape.ind) +
         scale_fill_manual(values = c("royalblue", "skyblue", "pink1", "red", "purple")) +
         
-        geom_text(aes(x=long,y=lat, label = chinese.name),check_overlap = FALSE,
-                  col="darkgray", size = 3, hjust = 0, nudge_x = 0.5,
+        geom_text(aes(x=long,y=lat, label = chinese.name),
+                  check_overlap = TRUE,
+                  col="darkgray",
+                  size = 4,
+                  #fontface = "bold",
+                  # alpha = 0.7,
+                  hjust = 0, nudge_x = 0.5,
                   data=city.data) +
         
         coord_map("albers",  at0 = 45.5, lat1 = 29.5) +
@@ -60,6 +72,45 @@ p <- ggplot(china.data, aes(long, lat)) +
         
 print(p)
 
+dev.copy(png, file = "produce_map_report_for_house_price.png", units= "px", width=1000, height=600)
+dev.off()
+
+p <- ggplot(china.data, aes(long, lat)) +
+  geom_polygon(aes(group = group), fill = "white", color = "black") +
+  
+  geom_point(aes(x=long,y=lat,
+                 col = `当前价格指数`, shape=`同比上年同月价格`, fill = `当前价格指数`),
+             size = 3,
+             data=final.data) +
+  
+  scale_colour_manual(values = c("royalblue", "skyblue", "pink1", "red", "purple")) +
+  
+  scale_shape_manual(values = shape.ind) +
+  scale_fill_manual(values = c("royalblue", "skyblue", "pink1", "red", "purple")) +
+  
+  geom_text(aes(x=long,y=lat, label = chinese.name),
+            check_overlap = FALSE,
+            col="black",
+            size = 4,
+            # fontface = "bold",
+            # alpha = 0.7,
+            hjust = 0, nudge_x = 0.5,
+            data=final.data[final.data$price.tongbi < 98,]) +
+  
+  coord_map("albers",  at0 = 45.5, lat1 = 29.5) +
+  xlab("经度") +
+  ylab("纬度") +
+  ggtitle("")  +
+  annotate("text", x = mean(china.data$long), y = 60,
+           label = paste0(plot.title.text, "--价格下降的城市"),
+           
+           vjust = 0, size = 6, parse = TRUE) 
+
+print(p)
+
+dev.copy(png, file = "produce_map_report_for_house_price_descending.png", units= "px", width=1000, height=600)
+
+dev.off()
 
 
 ##为城市添加经纬度信息
